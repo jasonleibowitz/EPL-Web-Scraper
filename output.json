@@ -1,0 +1,109 @@
+{
+    "dateCreated": "Thu Feb 18 2016 18:02:40 GMT-0500 (EST)",
+    "table": [
+        {
+            "teamName": "Leicester",
+            "points": "53"
+        },
+        {
+            "teamName": "Tottenham",
+            "points": "51"
+        },
+        {
+            "teamName": "Arsenal",
+            "points": "51"
+        },
+        {
+            "teamName": "Man City",
+            "points": "47"
+        },
+        {
+            "teamName": "Man Utd",
+            "points": "41"
+        },
+        {
+            "teamName": "Southampton",
+            "points": "40"
+        },
+        {
+            "teamName": "West Ham",
+            "points": "40"
+        },
+        {
+            "teamName": "Liverpool",
+            "points": "38"
+        },
+        {
+            "teamName": "Watford",
+            "points": "36"
+        },
+        {
+            "teamName": "Stoke",
+            "points": "36"
+        },
+        {
+            "teamName": "Everton",
+            "points": "35"
+        },
+        {
+            "teamName": "Chelsea",
+            "points": "33"
+        },
+        {
+            "teamName": "Crystal Palace",
+            "points": "32"
+        },
+        {
+            "teamName": "West Brom",
+            "points": "32"
+        },
+        {
+            "teamName": "Bournemouth",
+            "points": "28"
+        },
+        {
+            "teamName": "Swansea",
+            "points": "27"
+        },
+        {
+            "teamName": "Norwich",
+            "points": "24"
+        },
+        {
+            "teamName": "Newcastle",
+            "points": "24"
+        },
+        {
+            "teamName": "Sunderland",
+            "points": "23"
+        },
+        {
+            "teamName": "Aston Villa",
+            "points": "16"
+        },
+        {
+            "teamName": "Hull",
+            "points": "60"
+        },
+        {
+            "teamName": "Middlesbrough",
+            "points": "58"
+        },
+        {
+            "teamName": "Brighton",
+            "points": "57"
+        },
+        {
+            "teamName": "Burnley",
+            "points": "56"
+        },
+        {
+            "teamName": "Sheff Wed",
+            "points": "53"
+        },
+        {
+            "teamName": "Derby",
+            "points": "51"
+        }
+    ]
+}
