@@ -1,40 +1,51 @@
-var express = require('express')
-    fs = require('fs')
-    request = require('request')
-    cheerio = require('cheerio')
-    app = express();
+'use strict';
 
-app.get('/update-league-table', function(req, res) {
-    var url = 'http://www.bbc.com/sport/football/premier-league/table';
+var express = require('express');
+var fs = require('fs');
+var request = require('request');
+var cheerio = require('cheerio');
+var app = express();
 
-    request(url, function(error, response, html) {
-        if (!error) {
-            var $ = cheerio.load(html);
+app.get('/', function(req, res) {
+    res.send('Nothing to see at this path.');
+});
 
-            var table;
-            var json = { dateCreated: '', table: [] };
+app.post('/update-league-table', function(req, res) {
 
-            json.dateCreated = new Date().toString();
+    if (req.headers.api_token === '1234567890') {
+        var url = 'http://www.bbc.com/sport/football/premier-league/table';
 
-            // Grab current league table
-            $('table > tbody').children().filter(function() {
-                var data = $(this);
+        request(url, function(error, response, html) {
+            if (!error) {
+                var $ = cheerio.load(html);
 
-                data.each(function(index, element) {
-                    json['table'].push({
-                        teamName: $(element).children('.team-name').text(),
-                        points: $(element).children('.points').text()
+                var table;
+                var json = { dateCreated: '', table: [] };
+
+                json.dateCreated = new Date().toString();
+
+                // Grab current league table
+                $('table > tbody').children().filter(function() {
+                    var data = $(this);
+
+                    data.each(function(index, element) {
+                        json['table'].push({
+                            teamName: $(element).children('.team-name').text(),
+                            points: $(element).children('.points').text()
+                        });
                     });
                 });
+            };
+
+            fs.writeFile('output.json', JSON.stringify(json, null, 4), function(err) {
+                console.log('File successfully written! Check your project directory for the output.json file.');
             });
-        };
-
-        fs.writeFile('output.json', JSON.stringify(json, null, 4), function(err) {
-            console.log('File successfully written! Check your project directory for the output.json file.');
         });
-    });
 
-    res.send('Check your console!');
+        res.send('Check your console!');
+    } else {
+        res.send('Invalid API Token');
+    }
 });
 
 // app.get('/update-results', function(req, res) {
@@ -56,6 +67,6 @@ app.get('/table', function(req, res) {
     });
 });
 
-app.listen('8081');
+var server = app.listen('8081');
 console.log('Magic happens on port 8081');
-exports = module.exports = app;
+exports = module.exports = server;
