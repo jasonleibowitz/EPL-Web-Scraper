@@ -1,16 +1,19 @@
 'use strict';
 
-var express     = require('express');
-var app         = express();
-var morgan      = require('morgan');
-var mongoose    = require('mongoose');
-var fs          = require('fs');
-var request     = require('request');
-var cheerio     = require('cheerio');
+var express         = require('express');
+var app             = express();
+var morgan          = require('morgan');
+var mongoose        = require('mongoose');
+var fs              = require('fs');
+var request         = require('request');
+var cheerio         = require('cheerio');
 
-var config      = require('./config/database');
-var Team        = require('./models/team');
-var port        = process.env.PORT || 8080;
+var config          = require('./config/database');
+var renamer         = require('./config/renamer');
+var DataNormalizer  = require('./data_normalizer_helper');
+var DataNormalizer  = new DataNormalizer();
+var Team            = require('./models/team');
+var port            = process.env.PORT || 8080;
 
 app.use(morgan('dev'));
 mongoose.connect(config.database)
@@ -22,45 +25,82 @@ db.once('open', function() {
 })
 
 app.get('/', function(req, res) {
-    res.send('Nothing to see at this path.');
+    console.log(DataNormalizer.cleanDate('1st March 2016'));
+    res.send(renamer['fullName']['Tottenham']);
 });
 
-app.post('/update-league-table', function(req, res) {
+app.get('/update-league-table', function(req, res) {
 
-    if (req.headers.api_token === '1234567890') {
-        var url = 'http://www.bbc.com/sport/football/premier-league/table';
+    var url = 'http://www.bbc.com/sport/football/premier-league/table';
 
-        request(url, function(error, response, html) {
-            if (!error) {
-                var $ = cheerio.load(html);
+    request(url, function(error, response, html) {
+        if (!error) {
+            var $ = cheerio.load(html);
 
-                var table;
-                var json = { dateCreated: '', table: [] };
+            // Grab current league table
+            $('table > tbody').first().children().filter(function() {
+                var data = $(this);
 
-                json.dateCreated = new Date().toString();
+                data.each(function(index, element) {
+                    var teamName = $(element).children('.team-name').text();
+                    var points = $(element).children('.points').text();
+                    var result = $(element).children('.last-10-games').find('li').last().find('span').text();
+                    var score = $(element).children('.last-10-games').find('li').last().attr('data-result');
 
-                // Grab current league table
-                $('table > tbody').children().filter(function() {
-                    var data = $(this);
-
-                    data.each(function(index, element) {
-                        json['table'].push({
-                            teamName: $(element).children('.team-name').text(),
-                            points: $(element).children('.points').text()
-                        });
+                    Team.findOneAndUpdate({
+                        name: teamName
+                    }, {
+                        name: teamName,
+                        fullName: renamer['fullName'][teamName],
+                        shortname: renamer['shortname'][teamName],
+                        points: points,
+                        won: $(element).children('.won').text(),
+                        drawn: $(element).children('.drawn').text(),
+                        lost: $(element).children('.lost').text(),
+                        goalsFor: $(element).children('.for').text(),
+                        goalstAgainst: $(element).children('.against').text(),
+                        goalDifference: $(element).children('.goal-difference').text(),
+                        lastMatch: {
+                            date: DataNormalizer.cleanDate($(element).children('.last-10-games').find('li').last().attr('data-date')),
+                            result: result,
+                            opponent: $(element).children('.last-10-games').find('li').last().attr('data-against'),
+                            goalsFor: DataNormalizer.getGoals(result, score, true),
+                            goalsAgainst: DataNormalizer.getGoals(result, score, false)
+                        },
+                        updated: Date.now()
+                    }, {
+                        upsert: true
+                    }, function (err, team) {
+                        if (err) {
+                            console.log('error at ', teamName);
+                            throw err
+                        };
+                        console.log('successfully created ' + teamName + ' (' + points + ')');
                     });
                 });
-            };
-
-            fs.writeFile('output.json', JSON.stringify(json, null, 4), function(err) {
-                console.log('File successfully written! Check your project directory for the output.json file.');
             });
-        });
+        };
+    });
 
-        res.send('Check your console!');
-    } else {
-        res.send('Invalid API Token');
-    }
+    res.send('League Table Updated!');
+});
+
+// app.get('/setup', function(req, res) {
+    // Team.create({
+    //     name: 'Manchester United',
+    //     shortname: 'mufc',
+    //     points: 47
+    // }, function(err, team) {
+    //     if (err) throw err;
+    //     res.send(team.name + ' created successfully!');
+    // });
+// });
+
+app.get('/teams', function(req, res) {
+    Team.find({}, function(err, teams) {
+        if (err) throw err;
+        res.send(teams);
+    });
 });
 
 // app.get('/update-results', function(req, res) {
