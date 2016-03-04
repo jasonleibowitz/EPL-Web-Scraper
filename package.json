@@ -10,6 +10,7 @@
   "author": "Jason Leibowitz",
   "license": "ISC",
   "dependencies": {
+    "chai": "^3.5.0",
     "cheerio": "^0.20.0",
     "express": "^4.13.4",
     "moment": "^2.11.2",
