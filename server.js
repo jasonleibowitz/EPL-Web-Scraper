@@ -1,10 +1,25 @@
 'use strict';
 
-var express = require('express');
-var fs = require('fs');
-var request = require('request');
-var cheerio = require('cheerio');
-var app = express();
+var express     = require('express');
+var app         = express();
+var morgan      = require('morgan');
+var mongoose    = require('mongoose');
+var fs          = require('fs');
+var request     = require('request');
+var cheerio     = require('cheerio');
+
+var config      = require('./config/database');
+var Team        = require('./models/team');
+var port        = process.env.PORT || 8080;
+
+app.use(morgan('dev'));
+mongoose.connect(config.database)
+var db = mongoose.connection;
+
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function() {
+    console.log('database connected');
+})
 
 app.get('/', function(req, res) {
     res.send('Nothing to see at this path.');
@@ -67,6 +82,6 @@ app.get('/table', function(req, res) {
     });
 });
 
-var server = app.listen('8081');
+var server = app.listen(port);
 console.log('Magic happens on port 8081');
 exports = module.exports = server;
