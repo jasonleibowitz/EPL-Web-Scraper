@@ -103,17 +103,40 @@ app.get('/teams', function(req, res) {
     });
 });
 
-// app.get('/update-results', function(req, res) {
-//     var url = 'http://www.bbc.com/sport/football/premier-league/results';
-//
-//     request(url, function(error, response, html) {
-//         if (!error) {
-//             var $ = cheerio.load(html);
-//
-//             var
-//         }
-//     })
-// });
+app.get('/update-results', function(req, res) {
+    console.log('in update results');
+    var url = 'http://www.bbc.com/sport/football/premier-league/results';
+    var results = [];
+
+    request(url, function(error, response, html) {
+        if (!error) {
+            var $ = cheerio.load(html);
+            var start_time = new Date();
+
+            $(".fixtures-table").children('table').filter(function() {
+                var data = $(this);
+
+                data.each(function(index, element) {
+
+                    $(element).find('tbody').children().each(function(index, element) {
+                        var matchDate = $(element).parents('.fixtures-table').children().eq($(element).parents('table').index() - 1).text().trim();
+                        var homeTeam = $(element).find('.match-details').find('.team-home').text().trim();
+                        var awayTeam = $(element).find('.match-details').find('.team-away').text().trim();
+                        var homeTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[0];
+                        var awayTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[0];
+
+                        results.push({matchDate: matchDate, homeTeam: homeTeam, awayTeam: awayTeam, homeTeamGoals: homeTeamGoals, awayTeamGoals: awayTeamGoals});
+                    });
+                });
+            });
+            var end_time = new Date();
+            fs.writeFile('results.json', JSON.stringify(results, null, 4), function(err) {
+                console.log("Successfully saved " + results.length + " fixtures. It took " + (end_time - start_time) + "ms");
+            })
+        };
+    });
+    res.send('Check console');
+});
 
 app.get('/table', function(req, res) {
     fs.readFile(__dirname + "/" + "output.json", "utf8", function(err, data) {
