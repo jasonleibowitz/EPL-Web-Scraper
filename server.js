@@ -13,6 +13,7 @@ var renamer         = require('./config/renamer');
 var DataNormalizer  = require('./data_normalizer_helper');
 var DataNormalizer  = new DataNormalizer();
 var Team            = require('./models/team');
+var Result          = require('./models/result');
 var port            = process.env.PORT || 8080;
 
 app.use(morgan('dev'));
@@ -106,7 +107,7 @@ app.get('/teams', function(req, res) {
 app.get('/update-results', function(req, res) {
     console.log('in update results');
     var url = 'http://www.bbc.com/sport/football/premier-league/results';
-    var results = [];
+    // var results = [];
 
     request(url, function(error, response, html) {
         if (!error) {
@@ -119,20 +120,51 @@ app.get('/update-results', function(req, res) {
                 data.each(function(index, element) {
 
                     $(element).find('tbody').children().each(function(index, element) {
-                        var matchDate = $(element).parents('.fixtures-table').children().eq($(element).parents('table').index() - 1).text().trim();
+
+                        var matchDate = DataNormalizer.cleanDate($(element).parents('.fixtures-table').children().eq($(element).parents('table').index() - 1).text().trim());
                         var homeTeam = $(element).find('.match-details').find('.team-home').text().trim();
                         var awayTeam = $(element).find('.match-details').find('.team-away').text().trim();
                         var homeTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[0];
-                        var awayTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[0];
+                        var awayTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[1];
 
-                        results.push({matchDate: matchDate, homeTeam: homeTeam, awayTeam: awayTeam, homeTeamGoals: homeTeamGoals, awayTeamGoals: awayTeamGoals});
+
+                        if (homeTeamGoals === "P") {
+                            // match postponed. do nothing
+                            console.log('Before save. Home: ' + homeTeam + ' away: ' + awayTeam + '. Score: ' + homeTeamGoals + ' to ' + awayTeamGoals);
+                        } else {
+                            Result.findOneAndUpdate({
+                                date: matchDate,
+                                homeTeam: homeTeam,
+                                awayTeam: awayTeam,
+                            }, {
+                                date: matchDate,
+                                homeTeam: homeTeam,
+                                awayTeam: awayTeam,
+                                result: {
+                                    homeTeamGoals: homeTeamGoals,
+                                    awayTeamGoals: awayTeamGoals
+                                },
+                                updated: Date.now()
+                            }, {
+                                upsert: true
+                            }, function(err, result) {
+                                if (err) {
+                                    console.log('error at ', matchDate);
+                                    throw err;
+                                }
+                                console.log('successfully created ' + matchDate + ' match between ' + homeTeam + ' vs ' + awayTeam);
+                            });
+                        }
+
+                        // results.push({matchDate: matchDate, homeTeam: homeTeam, awayTeam: awayTeam, homeTeamGoals: homeTeamGoals, awayTeamGoals: awayTeamGoals});
                     });
                 });
             });
             var end_time = new Date();
-            fs.writeFile('results.json', JSON.stringify(results, null, 4), function(err) {
-                console.log("Successfully saved " + results.length + " fixtures. It took " + (end_time - start_time) + "ms");
-            })
+
+            // fs.writeFile('results.json', JSON.stringify(results, null, 4), function(err) {
+            //     console.log("Successfully saved " + results.length + " fixtures. It took " + (end_time - start_time) + "ms");
+            // })
         };
     });
     res.send('Check console');

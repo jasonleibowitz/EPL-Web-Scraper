@@ -9,23 +9,45 @@ describe('DataNormalizer', function() {
     var DataNormalizer = new dataNormalizer();
 
     describe('#cleanDate', function() {
-        context('with a British formatted date string', function() {
-            it('returns a cleaned up date string in MM-DD-YYYY format and using only numbers', function() {
-                var date = '1st March 2016';
-                var newDate = DataNormalizer.cleanDate(date);
-                return expect(newDate).to.eq('03-01-2016');
+        context('with a British formatted date string of 1st March 2016', function() {
+            var date = '1st March 2016';
+            var newDate = DataNormalizer.cleanDate(date);
+
+            it('returns a JS Date Object', function() {
+                return expect(newDate).to.be.a('date');
             });
 
-            it('returns a cleaned up date string with a February date', function() {
-                var date = '27th February 2016';
-                var newDate = DataNormalizer.cleanDate(date);
-                return expect(newDate).to.eq('02-27-2016');
+            it('the fullYear of the Date Object is 2016', function() {
+                return expect(newDate.getFullYear()).to.eq(2016);
             });
 
-            it('returns a cleaned up date string for a date in 2015', function() {
-                var date = '29th December 2015';
-                var newDate = DataNormalizer.cleanDate(date);
-                return expect(newDate).to.eq('12-29-2015');
+            it('the month of the Date Object is 02', function() {
+                return expect(newDate.getMonth()).to.eq(2);
+            });
+
+            it('the day of the Date Object is 01', function() {
+                return expect(newDate.getDate()).to.eq(1);
+            })
+        });
+
+        context('with a British formatted date that includes day of week, i.e. Sunday 6th March 2016', function() {
+            var date = 'Sunday 6th March 2016';
+            var newDate = DataNormalizer.cleanDate(date);
+
+            it('returns a JS Date Object', function() {
+                return expect(newDate).to.be.a('date');
+            });
+
+            it('the fullYear of the Date Object is 2016', function() {
+                return expect(newDate.getFullYear()).to.eq(2016);
+            });
+
+            it('the month of the Date object is 02', function() {
+                return expect(newDate.getMonth()).to.eq(2);
+            });
+
+            it('the day of the Date object is 6', function() {
+                return expect(newDate.getDate()).to.eq(6);
             });
         });
     });

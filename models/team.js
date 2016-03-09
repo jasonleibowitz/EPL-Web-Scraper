@@ -25,7 +25,7 @@ var TeamSchema = new Schema({
     goalsAgainst: Number,
     goalDifference: Number,
     lastMatch: {
-        date: String,
+        date: Date,
         result: String,
         opponent: String,
         goalsFor: Number,

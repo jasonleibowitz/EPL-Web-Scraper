@@ -5,8 +5,14 @@ function DataNormalizer() {};
 
 DataNormalizer.prototype.cleanDate = function(dateString) {
     var splitDate = dateString.split(' ');
-    var date = moment(splitDate[2] + '-' + splitDate[1] + '-' + parseInt(splitDate[0]), 'YYYY MMMM D');
-    return date.format('MM-DD-YYYY');
+    if (splitDate.length === 4) {
+        var date = moment(splitDate[3] + '-' + splitDate[2] + '-' + parseInt(splitDate[1]), 'YYYY MMMM D');
+    } else if (splitDate.length === 3) {
+        var date = moment(splitDate[2] + '-' + splitDate[1] + '-' + parseInt(splitDate[0]), 'YYYY MMMM D');
+    } else {
+        return new Error('Incorrect date format');
+    }
+    return date.toDate();
 };
 
 DataNormalizer.prototype.getGoals = function(result, score, primaryTeam) {
