@@ -15,6 +15,7 @@ var DataNormalizer  = new DataNormalizer();
 var teamKey         = require('./teamKey.js');
 var Team            = require('./models/team');
 var Result          = require('./models/result');
+var Fixture          = require('./models/fixture');
 var port            = process.env.PORT || 8080;
 
 app.use(morgan('dev'));
@@ -273,6 +274,83 @@ app.get('/update-results', function(req, res) {
     });
 
     res.send('Check console');
+});
+
+app.get('/update-fixtures', function(req, res) {
+
+    console.log('in update fixtures');
+    var premierLeaugeUrl = 'http://www.bbc.com/sport/football/premier-league/fixtures';
+    var championsLeagueUrl = 'http://www.bbc.com/sport/football/champions-league/fixtures';
+    var europaLeagueUrl = 'http://www.bbc.com/sport/football/europa-league/fixtures';
+
+    request(premierLeaugeUrl, function(error, response, html) {
+        if (!error) {
+            var $ = cheerio.load(html);
+            var start_time = new Date();
+
+            $(".fixtures-table").children('table').filter(function() {
+                var data = $(this);
+
+                data.each(function(index, element) {
+
+                    $(element).find('tbody').children().each(function(index, element) {
+
+                        var matchDate = DataNormalizer.cleanDate($(element).parents('.table-stats').prevAll('h2').first().text().trim());
+                        var kickoffHours = $(element).find('.kickoff').text().trim().split(':')[0];
+                        var kickoffMinutes = $(element).find('.kickoff').text().trim().split(':')[1];
+                        var homeTeam = $(element).find('.match-details').find('.team-home').text().trim();
+                        var awayTeam = $(element).find('.match-details').find('.team-away').text().trim();
+                        var homeTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[0];
+                        var awayTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[1];
+                        var matchStatus;
+
+                        if ($(element).hasClass('preview')) {
+                            matchStatus = 'Scheduled';
+                        } else if ($(element).hasClass('live')) {
+                            matchStatus = 'In Progress';
+                        } else if ($(element).hasClass('report')) {
+                            matchStatus = 'Finished';
+                        } else {
+                            matchStatus = 'Postponed';
+                        }
+
+                        // Add kickoff time to matchDate
+                        matchDate.setUTCHours(kickoffHours);
+                        matchDate.setMinutes(kickoffMinutes);
+
+                        if (homeTeamGoals === "P") {
+                            // match postponed. do nothing
+                            console.log('Before save. Home: ' + homeTeam + ' away: ' + awayTeam + '. Score: ' + homeTeamGoals + ' to ' + awayTeamGoals);
+                        } else {
+                            Fixture.findOneAndUpdate({
+                                date: matchDate,
+                                competition: 'Premier League',
+                                homeTeam: homeTeam,
+                                awayTeam: awayTeam,
+                            }, {
+                                date: matchDate,
+                                status: matchStatus,
+                                homeTeam: homeTeam,
+                                awayTeam: awayTeam,
+                                updated: Date.now()
+                            }, {
+                                upsert: true
+                            }, function(err, result) {
+                                if (err) {
+                                    console.log('error at ', matchDate);
+                                    throw err;
+                                }
+                                console.log('successfully created ' + matchDate + ' match between ' + homeTeam + ' vs ' + awayTeam);
+                            });
+                        }
+                    });
+                });
+            });
+            var end_time = new Date();
+        };
+    });
+
+    res.send('check console');
 });
 
 app.get('/table', function(req, res) {
