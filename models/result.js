@@ -16,6 +16,7 @@ var CardSchema = new Schema({
 
 var ResultSchema = new Schema({
     date: Date,
+    competition: String,
     homeTeam: String,
     awayTeam: String,
     result: {

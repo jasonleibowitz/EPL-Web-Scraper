@@ -12,6 +12,7 @@ var config          = require('./config/database');
 var renamer         = require('./config/renamer');
 var DataNormalizer  = require('./data_normalizer_helper');
 var DataNormalizer  = new DataNormalizer();
+var teamKey         = require('./teamKey.js');
 var Team            = require('./models/team');
 var Result          = require('./models/result');
 var port            = process.env.PORT || 8080;
@@ -106,10 +107,11 @@ app.get('/teams', function(req, res) {
 
 app.get('/update-results', function(req, res) {
     console.log('in update results');
-    var url = 'http://www.bbc.com/sport/football/premier-league/results';
-    // var results = [];
+    var premierLeaugeUrl = 'http://www.bbc.com/sport/football/premier-league/results';
+    var championsLeagueUrl = 'http://www.bbc.com/sport/football/champions-league/results';
+    var europaLeagueUrl = 'http://www.bbc.com/sport/football/europa-league/results';
 
-    request(url, function(error, response, html) {
+    request(premierLeaugeUrl, function(error, response, html) {
         if (!error) {
             var $ = cheerio.load(html);
             var start_time = new Date();
@@ -121,12 +123,11 @@ app.get('/update-results', function(req, res) {
 
                     $(element).find('tbody').children().each(function(index, element) {
 
-                        var matchDate = DataNormalizer.cleanDate($(element).parents('.fixtures-table').children().eq($(element).parents('table').index() - 1).text().trim());
+                        var matchDate = DataNormalizer.cleanDate($(element).parents('.table-stats').prevAll('h2').first().text().trim());
                         var homeTeam = $(element).find('.match-details').find('.team-home').text().trim();
                         var awayTeam = $(element).find('.match-details').find('.team-away').text().trim();
                         var homeTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[0];
                         var awayTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[1];
-
 
                         if (homeTeamGoals === "P") {
                             // match postponed. do nothing
@@ -134,6 +135,7 @@ app.get('/update-results', function(req, res) {
                         } else {
                             Result.findOneAndUpdate({
                                 date: matchDate,
+                                competition: 'Premier League',
                                 homeTeam: homeTeam,
                                 awayTeam: awayTeam,
                             }, {
@@ -155,18 +157,121 @@ app.get('/update-results', function(req, res) {
                                 console.log('successfully created ' + matchDate + ' match between ' + homeTeam + ' vs ' + awayTeam);
                             });
                         }
-
-                        // results.push({matchDate: matchDate, homeTeam: homeTeam, awayTeam: awayTeam, homeTeamGoals: homeTeamGoals, awayTeamGoals: awayTeamGoals});
                     });
                 });
             });
             var end_time = new Date();
-
-            // fs.writeFile('results.json', JSON.stringify(results, null, 4), function(err) {
-            //     console.log("Successfully saved " + results.length + " fixtures. It took " + (end_time - start_time) + "ms");
-            // })
         };
     });
+
+    request(championsLeagueUrl, function(error, response, html) {
+        if (!error) {
+            var $ = cheerio.load(html);
+            var start_time = new Date();
+
+            $('.fixtures-table').children('table').filter(function() {
+                var data = $(this);
+
+                data.each(function(index, element) {
+                    $(element).find('tbody').children().each(function(index, element) {
+                        var matchDate = DataNormalizer.cleanDate($(element).parents('.table-stats').prevAll('h2').first().text().trim());
+                        var homeTeam = $(element).find('.match-details').find('.team-home').text().trim();
+                        var awayTeam = $(element).find('.match-details').find('.team-away').text().trim();
+                        var homeTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[0];
+                        var awayTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[1];
+
+                        if (homeTeamGoals === "P") {
+                            // match postponed. do nothing
+                            console.log('Match between ' + homeTeam + ' and ' + awayTeam + ' is postponed.');
+                        } else if ((teamKey.indexOf(homeTeam.toLowerCase()) < 0) && (teamKey.indexOf(awayTeam.toLowerCase()) < 0)) {
+                            console.log('match between ' + homeTeam + ' and ' + awayTeam + ' doesn\'t include any Premier League clubs.');
+                        } else {
+                            console.log('before save. matchDate: ', matchDate);
+
+                            Result.findOneAndUpdate({
+                                date: matchDate,
+                                competition: 'Champions League',
+                                homeTeam: homeTeam,
+                                awayTeam: awayTeam,
+                            }, {
+                                date: matchDate,
+                                homeTeam: homeTeam,
+                                awayTeam: awayTeam,
+                                result: {
+                                    homeTeamGoals: homeTeamGoals,
+                                    awayTeamGoals: awayTeamGoals
+                                },
+                                updated: Date.now()
+                            }, {
+                                upsert: true
+                            }, function(err, result) {
+                                if (err) {
+                                    console.log('error at ', matchDate);
+                                    throw err;
+                                }
+                                console.log('successfully created ' + matchDate + ' match between ' + homeTeam + ' vs ' + awayTeam);
+                            });
+                        }
+                    });
+                });
+            });
+        }
+    });
+
+    request(europaLeagueUrl, function(error, response, html) {
+        if (!error) {
+            var $ = cheerio.load(html);
+            var start_time = new Date();
+
+            $('.fixtures-table').children('table').filter(function() {
+                var data = $(this);
+
+                data.each(function(index, element) {
+                    $(element).find('tbody').children().each(function(index, element) {
+                        var matchDate = DataNormalizer.cleanDate($(element).parents('.table-stats').prevAll('h2').first().text().trim());
+                        var homeTeam = $(element).find('.match-details').find('.team-home').text().trim();
+                        var awayTeam = $(element).find('.match-details').find('.team-away').text().trim();
+                        var homeTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[0];
+                        var awayTeamGoals = $(element).find('.match-details').find('.score').text().trim().split('-')[1];
+
+                        if (homeTeamGoals === "P") {
+                            // match postponed. do nothing
+                            console.log('Match between ' + homeTeam + ' and ' + awayTeam + ' is postponed.');
+                        } else if ((teamKey.indexOf(homeTeam.toLowerCase()) < 0) && (teamKey.indexOf(awayTeam.toLowerCase()) < 0)) {
+                            console.log('match between ' + homeTeam + ' and ' + awayTeam + ' doesn\'t include any Premier League clubs.');
+                        } else {
+                            console.log('before save. matchDate: ', matchDate);
+
+                            Result.findOneAndUpdate({
+                                date: matchDate,
+                                competition: 'Europa League',
+                                homeTeam: homeTeam,
+                                awayTeam: awayTeam,
+                            }, {
+                                date: matchDate,
+                                homeTeam: homeTeam,
+                                awayTeam: awayTeam,
+                                result: {
+                                    homeTeamGoals: homeTeamGoals,
+                                    awayTeamGoals: awayTeamGoals
+                                },
+                                updated: Date.now()
+                            }, {
+                                upsert: true
+                            }, function(err, result) {
+                                if (err) {
+                                    console.log('error at ', matchDate);
+                                    throw err;
+                                }
+                                console.log('successfully created ' + matchDate + ' match between ' + homeTeam + ' vs ' + awayTeam);
+                            });
+                        }
+                    });
+                });
+            });
+        }
+    });
+
     res.send('Check console');
 });
 
